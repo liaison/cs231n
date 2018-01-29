@@ -97,7 +97,12 @@ class KNearestNeighbor(object):
       # points, and store the result in dists[i, :].                        #
       #######################################################################
       # vectorize the difference operation
-      dists[i, :] = np.linalg.norm(self.X_train - X[i], axis=1)
+      
+      #dists[i, :] = np.linalg.norm(self.X_train - X[i], axis=1)
+      
+      diff = self.X_train - X[i]
+      dists[i, :] = np.sqrt(np.sum(diff ** 2, axis=1))
+    
       #######################################################################
       #                         END OF YOUR CODE                            #
       #######################################################################
