@@ -21,7 +21,8 @@ class KNearestNeighbor(object):
     """
     self.X_train = X
     self.y_train = y
-    
+  
+
   def predict(self, X, k=1, num_loops=0):
     """
     Predict labels for test data using this classifier.
@@ -124,8 +125,9 @@ class KNearestNeighbor(object):
     # HINT: Try to formulate the l2 distance using matrix multiplication    #
     #       and two broadcast sums.                                         #
     #########################################################################
-    pass
-
+    diff = (X.reshape(X.shape[0], 1, X.shape[1]) - self.X_train)
+    dists = np.linalg.norm(diff, axis=2)
+    
     #########################################################################
     #                         END OF YOUR CODE                              #
     #########################################################################
