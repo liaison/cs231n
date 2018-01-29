@@ -21,8 +21,8 @@ class KNearestNeighbor(object):
     """
     self.X_train = X
     self.y_train = y
-  
 
+    
   def predict(self, X, k=1, num_loops=0):
     """
     Predict labels for test data using this classifier.
@@ -48,6 +48,8 @@ class KNearestNeighbor(object):
       raise ValueError('Invalid value %d for num_loops' % num_loops)
 
     return self.predict_labels(dists, k=k)
+
+
 
   def compute_distances_two_loops(self, X):
     """
@@ -97,16 +99,20 @@ class KNearestNeighbor(object):
       # points, and store the result in dists[i, :].                        #
       #######################################################################
       # vectorize the difference operation
-      
+
+      # The np.linalg.norm() is twice slower than np.sqrt(np.sum())
       #dists[i, :] = np.linalg.norm(self.X_train - X[i], axis=1)
-      
-      diff = self.X_train - X[i]
-      dists[i, :] = np.sqrt(np.sum(diff ** 2, axis=1))
-    
+
+      # it slows down the process when keeping the intermediate results
+      #diff = X[i] - self.X_train
+
+      dists[i, :] = np.sqrt(np.sum((X[i] - self.X_train) ** 2, axis=1))
+
       #######################################################################
       #                         END OF YOUR CODE                            #
       #######################################################################
     return dists
+
 
   def compute_distances_no_loops(self, X):
     """
@@ -137,6 +143,7 @@ class KNearestNeighbor(object):
     #                         END OF YOUR CODE                              #
     #########################################################################
     return dists
+
 
   def predict_labels(self, dists, k=1):
     """
