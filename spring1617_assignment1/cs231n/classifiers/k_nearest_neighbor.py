@@ -136,8 +136,19 @@ class KNearestNeighbor(object):
     # HINT: Try to formulate the l2 distance using matrix multiplication    #
     #       and two broadcast sums.                                         #
     #########################################################################
-    diff = (X.reshape(X.shape[0], 1, X.shape[1]) - self.X_train)
-    dists = np.linalg.norm(diff, axis=2)
+    
+    # Solution 1).
+    dists = np.sqrt(np.sum((X.reshape(X.shape[0], 1, X.shape[1]) - self.X_train) ** 2, axis=2))
+    
+    # Solution 2). it takes twice time by storing the intermediate results
+    #diff = (X.reshape(X.shape[0], 1, X.shape[1]) - self.X_train)
+    #dists = np.linalg.norm(diff, axis=2)
+    
+    # Solution 3). This solution is suggested by the hint, but actually takes more time.
+    #  (x1 - x2) ** 2 == X1 ** 2 + x2 ** 2 - 2 * x1 * x2
+    #dists = np.sqrt(np.sum(self.X_train ** 2 + \
+    #                       np.reshape(X ** 2, (X.shape[0], 1, X.shape[1])), axis=2) \
+    #                - 2 * np.dot(X, self.X_train.T))
     
     #########################################################################
     #                         END OF YOUR CODE                              #
