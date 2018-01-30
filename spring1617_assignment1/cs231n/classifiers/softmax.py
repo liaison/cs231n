@@ -30,7 +30,27 @@ def softmax_loss_naive(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  # calculate the loss, one sample by another
+  for i in range(X.shape[0]):
+      scores = np.dot(X[i], W)
+      # shift the values to avoid the numeric problem
+      # the highest value would be zero
+      scores -= np.max(scores)
+
+      # calculate the negative log probability
+      probs = np.exp(scores)
+      sum_probs = np.sum(probs)
+      loss_vec = - np.log(probs / sum_probs)
+
+      # retrieve the negative log probability of the predicted class
+      correct_label_index = y[i]
+      loss += loss_vec[correct_label_index]
+
+  # average the loss over all examples
+  loss = loss / X.shape[0]
+
+  # add the regularization
+  loss += reg
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
