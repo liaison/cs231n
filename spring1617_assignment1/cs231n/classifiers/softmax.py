@@ -46,11 +46,22 @@ def softmax_loss_naive(W, X, y, reg):
       correct_label_index = y[i]
       loss += loss_vec[correct_label_index]
 
+      # calculate the gradients of weights
+      # dW = mean( (pi - yi) * Xi )
+      #   pi:  probability vector for the i example
+      #   yi:  the indicator function, indicates the actual target class
+      #   Xi:  the input of the i example
+      for c in range(W.shape[1]):
+          dW[:, c] +=  ( (probs / sum_probs)[c] - (c == y[i]) ) * X[i,:]
+
   # average the loss over all examples
   loss = loss / X.shape[0]
 
   # add the regularization
-  loss += reg
+  loss += 0.5 * reg * np.sum(W * W)
+
+  # average the gradients over the examples
+  dW = dW / X.shape[0]
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
