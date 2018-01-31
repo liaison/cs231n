@@ -46,6 +46,9 @@ def softmax_loss_naive(W, X, y, reg):
       correct_label_index = y[i]
       loss += loss_vec[correct_label_index]
 
+      # References:
+      # https://stackoverflow.com/questions/41663874/cs231n-how-to-calculate-gradient-for-softmax-loss-function
+      # https://math.stackexchange.com/questions/945871/derivative-of-softmax-loss-function
       # calculate the gradients of weights
       # dW = mean( (pi - yi) * Xi )
       #   pi:  probability vector for the i example
@@ -85,7 +88,45 @@ def softmax_loss_vectorized(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  # calculate the loss, all at once
+  
+  scores = np.dot(X, W)    # output shape: (N, C)
+  # shift the values to avoid the numeric problem
+  # the highest value would be zero
+  scores -= np.max(scores, axis=1).reshape(len(scores), 1)
+
+  # calculate the negative log probability
+  probs = np.exp(scores)
+  sum_probs = np.sum(probs, axis=1).reshape(len(probs), 1)  # reshape to (N, C)
+  loss_matrix = - np.log(probs / sum_probs)
+
+  # retrieve the negative log probability of the predicted class
+  correct_label_index = y  # just to facilitate the reading of code
+  loss += np.sum(loss_matrix[np.arange(len(loss_matrix)), correct_label_index])
+
+  # calculate the gradients of weights
+  # dW = mean( (pi - yi) * Xi )
+  #   pi:  probability vector for the i example
+  #   yi:  the indicator function, indicates the actual target class
+  #   Xi:  the input of the i example
+  
+  # mark the selected class for each example
+  indicators = np.zeros_like(probs)
+  indicators[np.arange(len(indicators)), y] = 1
+  
+  dW += np.dot( X.T, (probs/sum_probs)-indicators )
+  
+  # average the loss over all examples
+  loss = loss / X.shape[0]
+
+  # add the regularization
+  loss += 0.5 * reg * np.sum(W * W)
+
+  # average the gradients over the examples
+  dW = dW / X.shape[0]
+  
+
+
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
