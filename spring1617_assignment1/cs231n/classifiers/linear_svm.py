@@ -66,7 +66,18 @@ def svm_loss_naive(W, X, y, reg):
 def svm_loss_vectorized(W, X, y, reg):
   """
   Structured SVM loss function, vectorized implementation.
+ 
+  Inputs:
+  - W: A numpy array of shape (D, C) containing weights.
+  - X: A numpy array of shape (N, D) containing a minibatch of data.
+  - y: A numpy array of shape (N,) containing training labels; y[i] = c means
+    that X[i] has label c, where 0 <= c < C.
+  - reg: (float) regularization strength
 
+  Returns a tuple of:
+  - loss as single float
+  - gradient with respect to weights W; an array of same shape as W
+ 
   Inputs and outputs are the same as svm_loss_naive.
   """
   loss = 0.0
@@ -78,13 +89,15 @@ def svm_loss_vectorized(W, X, y, reg):
   # result in loss.                                                           #
   #############################################################################
   scores = np.dot(X, W)
-
-  correct_class_score = scores[np.arange(len(scores)), y_dev].reshape(len(scores), 1)
+  correct_class_score = scores[np.arange(len(scores)), y].reshape(len(scores), 1)
 
   margins = scores - correct_class_score + 1
 
+  # hinge loss, ignore the error when the margin is large enough
+  margins[margins < 0] = 0
+  
   # clear the margin/loss of the selected class
-  margins[np.arange(len(margins)), y_dev] = 0
+  margins[np.arange(len(margins)), y] = 0
 
   # average the total margin/loss over all examples
   loss = np.sum(margins) / X.shape[0]
@@ -96,7 +109,6 @@ def svm_loss_vectorized(W, X, y, reg):
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
-
 
   #############################################################################
   # TODO:                                                                     #
