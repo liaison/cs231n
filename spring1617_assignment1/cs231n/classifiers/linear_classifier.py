@@ -7,6 +7,9 @@ from past.builtins import xrange
 
 
 class LinearClassifier(object):
+  """
+      Reference: http://cs231n.github.io/neural-networks-3/
+  """
 
   def __init__(self):
     self.W = None
@@ -33,8 +36,8 @@ class LinearClassifier(object):
     num_train, dim = X.shape
     num_classes = np.max(y) + 1 # assume y takes values 0...K-1 where K is number of classes
     if self.W is None:
-      # lazily initialize W
-      self.W = 0.001 * np.random.randn(dim, num_classes)
+      # lazily initialize W, instead of initializing it in constructor
+      self.W = 0.001 * np.random.randn(dim, num_classes) # weights of shape (D, C)
 
     # Run stochastic gradient descent to optimize W
     loss_history = []
@@ -47,13 +50,17 @@ class LinearClassifier(object):
       # Sample batch_size elements from the training data and their           #
       # corresponding labels to use in this round of gradient descent.        #
       # Store the data in X_batch and their corresponding labels in           #
-      # y_batch; after sampling X_batch should have shape (dim, batch_size)   #
+      # y_batch; after sampling X_batch should have shape (batch_size, dim)   #
       # and y_batch should have shape (batch_size,)                           #
       #                                                                       #
       # Hint: Use np.random.choice to generate indices. Sampling with         #
       # replacement is faster than sampling without replacement.              #
       #########################################################################
-      pass
+      
+      batch_indice = np.random.choice(range(num_train), batch_size, replace=True)
+      X_batch = X[batch_indice]
+      y_batch = y[batch_indice]
+      
       #########################################################################
       #                       END OF YOUR CODE                                #
       #########################################################################
@@ -67,7 +74,8 @@ class LinearClassifier(object):
       # TODO:                                                                 #
       # Update the weights using the gradient and the learning rate.          #
       #########################################################################
-      pass
+      self.W -= learning_rate * grad
+      
       #########################################################################
       #                       END OF YOUR CODE                                #
       #########################################################################
