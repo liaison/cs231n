@@ -55,6 +55,7 @@ def softmax_loss_naive(W, X, y, reg):
       #   yi:  the indicator function, indicates the actual target class
       #   Xi:  the input of the i example
       for c in range(W.shape[1]):
+          # the gradient is proportional to the predict score and the input value
           dW[:, c] +=  ( (probs / sum_probs)[c] - (c == y[i]) ) * X[i,:]
 
   # average the loss over all examples

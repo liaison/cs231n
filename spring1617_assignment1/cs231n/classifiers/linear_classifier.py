@@ -12,7 +12,7 @@ class LinearClassifier(object):
   """
 
   def __init__(self):
-    self.W = None
+    self.W = None   # weights of shape (D, C).  Lazy initialization
 
   def train(self, X, y, learning_rate=1e-3, reg=1e-5, num_iters=100,
             batch_size=200, verbose=False):
