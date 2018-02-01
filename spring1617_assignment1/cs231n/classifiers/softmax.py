@@ -125,8 +125,6 @@ def softmax_loss_vectorized(W, X, y, reg):
   # average the gradients over the examples
   dW = dW / X.shape[0]
   
-
-
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################

@@ -113,11 +113,6 @@ def svm_loss_vectorized(W, X, y, reg):
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
-  # dW[:, j] += X[i]
-  # dW[:, y[i]] -= X[i]
-  # margin shape of (N, C)
-  # X of shape (N, D)
-
   loss_scale = margins.copy()
   # the loss for non-selected class
   loss_scale[loss_scale > 0] = 1
