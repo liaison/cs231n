@@ -44,11 +44,13 @@ def svm_loss_naive(W, X, y, reg):
   # to be an average instead so we divide by num_train.
   loss /= num_train
 
-  # Add regularization to the loss.
-  loss += reg * np.sum(W * W)
-
   # average the gradient over all the examples.
   dW /= num_train
+
+  # Add regularization to the loss and gradients
+  loss += reg * np.sum(W * W)
+  
+  #dW += reg*W
 
   #############################################################################
   # TODO:                                                                     #
@@ -81,17 +83,19 @@ def svm_loss_vectorized(W, X, y, reg):
   Inputs and outputs are the same as svm_loss_naive.
   """
   loss = 0.0
-  dW = np.zeros(W.shape) # initialize the gradient as zero
+  dW = np.zeros(W.shape) # initialize the gradient as zero, shape of (D, C)
 
+  num_classes = W.shape[1]
+  num_train = X.shape[0]
   #############################################################################
   # TODO:                                                                     #
   # Implement a vectorized version of the structured SVM loss, storing the    #
   # result in loss.                                                           #
   #############################################################################
-  scores = np.dot(X, W)
+  scores = np.dot(X, W)  # shape (N, C)
   correct_class_score = scores[np.arange(len(scores)), y].reshape(len(scores), 1)
 
-  margins = scores - correct_class_score + 1
+  margins = scores - correct_class_score + 1   # shape of (N, C)
 
   # hinge loss, ignore the error when the margin is large enough
   margins[margins < 0] = 0
@@ -109,6 +113,23 @@ def svm_loss_vectorized(W, X, y, reg):
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
+  # dW[:, j] += X[i]
+  # dW[:, y[i]] -= X[i]
+  # margin shape of (N, C)
+  # X of shape (N, D)
+
+  loss_scale = margins.copy()
+  # the loss for non-selected class
+  loss_scale[loss_scale > 0] = 1
+  # the loss for selected class, accumulated over the count of non-selected class
+  loss_scale[np.arange(len(loss_scale)), y] = - np.sum(margins > 0, axis=1)  # N
+
+  dW = np.dot(X.T, loss_scale)
+
+  # average over all the examples
+  dW /= num_train
+
+  # dW += reg*W
 
   #############################################################################
   # TODO:                                                                     #
