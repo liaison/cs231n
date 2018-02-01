@@ -4,8 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from past.builtins import xrange
 
+#import softmax
+
 class TwoLayerNet(object):
   """
+  
+  Reference solution:  http://cs231n.github.io/neural-networks-case-study/
+  
   A two-layer fully-connected neural network. The net has an input dimension of
   N, a hidden layer dimension of H, and performs classification over C classes.
   We train the network with a softmax loss function and L2 regularization on the
@@ -76,7 +81,10 @@ class TwoLayerNet(object):
     # Store the result in the scores variable, which should be an array of      #
     # shape (N, C).                                                             #
     #############################################################################
-    pass
+    # Note: one should apply the ReLu on the output of hidden layer
+    hidden_layer_output = np.maximum(0, np.dot(X, W1) + b1)
+    scores = np.dot(hidden_layer_output, W2) + b2
+    
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -93,7 +101,24 @@ class TwoLayerNet(object):
     # in the variable loss, which should be a scalar. Use the Softmax           #
     # classifier loss.                                                          #
     #############################################################################
-    pass
+    
+    # shift the values to avoid the numeric problem
+    # the highest value would be zero
+    scores -= np.max(scores, axis=1).reshape(len(scores), 1)
+
+    # calculate the negative log probability
+    exp_scores = np.exp(scores)
+    sum_exp_scores = np.sum(exp_scores, axis=1).reshape(len(exp_scores), 1)  # reshape to (N, C)
+    probs = exp_scores / sum_exp_scores
+    loss_matrix = - np.log(probs)
+
+    # retrieve the negative log probability of the predicted class
+    loss = np.sum(loss_matrix[np.arange(len(loss_matrix)), y])
+    
+    # average out the loss and add the regularization
+    loss = loss / N
+    loss += 0.5 * (reg * np.sum(W1 * W1) + reg * np.sum(W2 * W2))
+
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -105,7 +130,34 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    pass
+    
+    # solution reference:  http://cs231n.github.io/neural-networks-case-study/
+    
+    # compute the gradient on scores
+    dscores = probs
+    dscores[range(N),y] -= 1
+    dscores /= N
+  
+    # backpropate the gradient to the parameters
+    # 1). first backprop into parameters W2 and b2
+    dW2 = np.dot(hidden_layer_output.T, dscores)
+    # it is important to add the regularization for the gradients as well !
+    dW2 += reg * W2
+    db2 = np.sum(dscores, axis=0, keepdims=True)
+    grads['W2'] = dW2
+    grads['b2'] = db2
+    
+    # next backprop into hidden layer
+    dhidden = np.dot(dscores, W2.T)
+    # backprop the ReLU non-linearity
+    dhidden[hidden_layer_output <= 0] = 0
+    # finally into W,b
+    dW1 = np.dot(X.T, dhidden)
+    dW1 += reg * W1
+    db1 = np.sum(dhidden, axis=0, keepdims=True)
+  
+    grads['W1'] = dW1
+    grads['b1'] = db1
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
