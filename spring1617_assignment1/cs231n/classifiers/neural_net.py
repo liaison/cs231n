@@ -201,7 +201,11 @@ class TwoLayerNet(object):
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
-      pass
+
+      batch_indice = np.random.choice(range(num_train), batch_size, replace=True)
+      X_batch = X[batch_indice]
+      y_batch = y[batch_indice]
+
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -216,7 +220,12 @@ class TwoLayerNet(object):
       # using stochastic gradient descent. You'll need to use the gradients   #
       # stored in the grads dictionary defined above.                         #
       #########################################################################
-      pass
+
+      self.params['W1'] += - learning_rate * grads['W1']
+      self.params['b1'] += - learning_rate * grads['b1'].squeeze()
+      self.params['W2'] += - learning_rate * grads['W2']
+      self.params['b2'] += - learning_rate * grads['b2'].squeeze()
+
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -258,10 +267,26 @@ class TwoLayerNet(object):
     """
     y_pred = None
 
+    W1, b1 = self.params['W1'], self.params['b1']
+    W2, b2 = self.params['W2'], self.params['b2']
+
     ###########################################################################
     # TODO: Implement this function; it should be VERY simple!                #
     ###########################################################################
-    pass
+    # Note: one should apply the ReLu on the output of hidden layer
+    hidden_layer_output = np.maximum(0, np.dot(X, W1) + b1)
+    scores = np.dot(hidden_layer_output, W2) + b2
+
+    # for numerical stability
+    scores -= np.max(scores, axis=1).reshape(len(scores), 1)
+
+    # calculate the probability for each class
+    exp_scores = np.exp(scores)
+    sum_exp_scores = np.sum(exp_scores, axis=1).reshape(len(exp_scores), 1)  # reshape to (N, C)
+    probs = exp_scores / sum_exp_scores  # of shape (N, C)
+
+    # choose the class with the maximum probability
+    y_pred = np.argmax(probs, axis=1)
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
