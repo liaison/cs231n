@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from past.builtins import xrange
 
-#import softmax
 
 class TwoLayerNet(object):
   """
@@ -166,6 +165,7 @@ class TwoLayerNet(object):
 
   def train(self, X, y, X_val, y_val,
             learning_rate=1e-3, learning_rate_decay=0.95,
+            loss_reduce_delta = 5e-6, learning_rate_decay_patience = 5,
             reg=5e-6, num_iters=100,
             batch_size=200, verbose=False):
     """
@@ -187,6 +187,9 @@ class TwoLayerNet(object):
     """
     num_train = X.shape[0]
     iterations_per_epoch = max(num_train / batch_size, 1)
+
+    best_loss = float('inf')
+    learning_rate_decay_wait = 0
 
     # Use SGD to optimize the parameters in self.model
     loss_history = []
@@ -232,18 +235,28 @@ class TwoLayerNet(object):
       #########################################################################
 
       if verbose and it % 100 == 0:
-        print('iteration %d / %d: loss %f' % (it, num_iters, loss))
+        print('iteration %d / %d: loss: %f, learning_rate: %f' % \
+              (it, num_iters, loss, learning_rate))
 
-      # Every epoch, check train and val accuracy and decay learning rate.
+      # Decay learning rate when the loss reachs the plateau
+      if loss < best_loss:
+        best_loss = loss
+
+      if abs(loss - best_loss) <= loss_reduce_delta:
+        learning_rate_decay_wait += 1
+
+      if learning_rate_decay_wait > learning_rate_decay_patience:
+        learning_rate *= learning_rate_decay
+        # reset the waiting counter
+        learning_rate_decay_wait = 0
+
+      # Every epoch, check train and val accuracy.
       if it % iterations_per_epoch == 0:
         # Check accuracy
         train_acc = (self.predict(X_batch) == y_batch).mean()
         val_acc = (self.predict(X_val) == y_val).mean()
         train_acc_history.append(train_acc)
         val_acc_history.append(val_acc)
-
-        # Decay learning rate
-        learning_rate *= learning_rate_decay
 
     return {
       'loss_history': loss_history,
