@@ -193,7 +193,8 @@ class TwoLayerNet(object):
     train_acc_history = []
     val_acc_history = []
 
-    for it in xrange(num_iters):
+    # Just to keep the record for the last iteration
+    for it in xrange(num_iters + 1):
       X_batch = None
       y_batch = None
 
