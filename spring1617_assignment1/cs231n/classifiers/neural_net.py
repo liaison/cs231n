@@ -166,6 +166,7 @@ class TwoLayerNet(object):
   def train(self, X, y, X_val, y_val,
             learning_rate=1e-3, learning_rate_decay=0.95,
             loss_reduce_delta = 5e-6, learning_rate_decay_patience = 5,
+            best_loss_moving_window = 100,
             reg=5e-6, num_iters=100,
             batch_size=200, verbose=False):
     """
@@ -239,6 +240,10 @@ class TwoLayerNet(object):
               (it, num_iters, loss, learning_rate))
 
       # Decay learning rate when the loss reachs the plateau
+      # Using the moving window best, instead of the global best
+      if (len(loss_history) > 1):
+        best_loss = np.min(loss_history[-best_loss_moving_window:-1]) 
+
       if loss < best_loss:
         best_loss = loss
 
