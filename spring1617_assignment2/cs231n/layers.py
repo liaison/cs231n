@@ -61,7 +61,12 @@ def affine_backward(dout, cache):
     # TODO: Implement the affine backward pass.                               #
     ###########################################################################
     # http://cs231n.github.io/optimization-2/
+    # The "*" operator is to unzip the tuple.
     dx = dout.dot(w.T).reshape(*x.shape)
+    
+    # Reshape the input to (D, N) for the dot product with dout (N, M)
+    # The gradient for each example is added up to be the gradients of weights.
+    # As the loss = f(x1) + f(x2) + ... f(xn) where f(x1) = |x1 * w + b - y| for L1 loss.
     dw = x.reshape(x.shape[0], np.prod(x.shape[1:])).T.dot(dout)
 
     # Like the above two gradients, the gradient of each example adds up to the final one.
