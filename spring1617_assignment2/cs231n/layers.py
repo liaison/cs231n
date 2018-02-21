@@ -48,6 +48,7 @@ def affine_backward(dout, cache):
     - cache: Tuple of:
       - x: Input data, of shape (N, d_1, ... d_k)
       - w: Weights, of shape (D, M)
+      - b: bias, of shape (M)
 
     Returns a tuple of:
     - dx: Gradient with respect to x, of shape (N, d1, ..., d_k)
@@ -59,7 +60,14 @@ def affine_backward(dout, cache):
     ###########################################################################
     # TODO: Implement the affine backward pass.                               #
     ###########################################################################
-    pass
+    # http://cs231n.github.io/optimization-2/
+    dx = dout.dot(w.T).reshape(*x.shape)
+    dw = x.reshape(x.shape[0], np.prod(x.shape[1:])).T.dot(dout)
+
+    # Like the above two gradients, the gradient of each example adds up to the final one.
+    # As the gradient is used for the loss function, which is accumulated with
+    #    the loss of each example.
+    db = dout.sum(axis=0)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
