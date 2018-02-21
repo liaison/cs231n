@@ -25,7 +25,13 @@ def affine_forward(x, w, b):
     # TODO: Implement the affine forward pass. Store the result in out. You   #
     # will need to reshape the input into rows.                               #
     ###########################################################################
-    pass
+
+    # reshape the input into x' of (N, D), where D = d_1 * ... * d_k
+    # then do the affine forward:  (x' . w) + b
+    # the dot product (x' . w) is of shape (N, M)
+    # the addition x' + b would be a broadcast addition.
+    out = np.dot(x.reshape(x.shape[0], np.prod(x.shape[1:])), w) + b
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
