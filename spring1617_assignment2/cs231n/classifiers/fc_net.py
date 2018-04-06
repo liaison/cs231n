@@ -270,7 +270,34 @@ class FullyConnectedNet(object):
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
         ############################################################################
-        pass
+        
+        out_cache_dict = {}
+        
+        layer_input = X
+        # iterate over the hidden layers and the final output layer
+        for i in range(self.num_layers):
+            layer_index = str(i+1)
+
+            if (i == self.num_layers - 1):
+                # the final output layer would NOT need the ReLu gate
+                out, cache = affine_forward(layer_input,
+                    self.params['W' + layer_index], self.params['b' + layer_index])
+            else:
+                # the intermediate hidden layers
+                out, cache = affine_relu_forward(layer_input,
+                    self.params['W' + layer_index], self.params['b' + layer_index])
+        
+            out_cache_dict['out' + layer_index] = out
+            out_cache_dict['cache' + layer_index] = cache
+            
+            # the output of this layer becomes the input of next layer
+            layer_input = out
+
+        # Note: NO softmax on the final output
+        scores = out
+
+        # TODO: dropout
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -293,7 +320,6 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        pass
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
