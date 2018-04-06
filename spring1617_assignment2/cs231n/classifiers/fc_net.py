@@ -190,7 +190,22 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to one and shift      #
         # parameters should be initialized to zero.                                #
         ############################################################################
-        pass
+
+        # construct a chain to determine the dimension for each layer
+        dimension_chain = [input_dim]
+        dimension_chain.extend(hidden_dims)
+        dimension_chain.append(num_classes)
+
+        for i in range(0, len(hidden_dims) + 1):
+            # init the weights for hidden layers and output layer
+            self.params['W' + str(i+1)] = \
+                np.random.normal(scale = weight_scale,
+                                 size = (dimension_chain[i], dimension_chain[i+1]))
+            self.params['b' + str(i+1)] = np.zeros(dimension_chain[i+1])
+
+        # TODO:
+        # Batch normalization
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -216,6 +231,13 @@ class FullyConnectedNet(object):
         # Cast all parameters to the correct datatype
         for k, v in self.params.items():
             self.params[k] = v.astype(dtype)
+
+
+    def get_weights(self):
+        """
+        Return the dictionary of weights and bias for the hidden layers and the output layer
+        """
+        return self.params
 
 
     def loss(self, X, y=None):
