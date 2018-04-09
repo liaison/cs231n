@@ -320,6 +320,32 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
+        
+        # use the final output to calculate the loss
+        loss, d_out = softmax_loss(out, y)
+
+        # add L2 regularization
+        if (self.reg):
+            for i in range(self.num_layers):
+                layer_index = str(i+1)
+                penalty = np.sum(np.power(self.params['W' + layer_index], 2))
+                loss += 0.5 * self.reg * penalty
+
+        # iterate through the layers in reverse order
+        for i in range(self.num_layers, 0, -1):
+            layer_index = str(i)
+            
+            if i == self.num_layers :
+                # the backward of the last layer does not need the ReLU gate
+                dx, dw, db = affine_backward(d_out, out_cache_dict['cache' + layer_index])
+            else:
+                dx, dw, db = affine_relu_backward(d_out, out_cache_dict['cache' + layer_index])
+
+            # the derivative output of the previous layer becomes the input of the next layer 
+            d_out = dx
+            
+            grads['W' + layer_index] = dw
+            grads['b' + layer_index] = db
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
