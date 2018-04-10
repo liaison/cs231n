@@ -68,6 +68,9 @@ def sgd_momentum(w, dw, config=None):
     # reference for the formula:
     #     http://cs231n.github.io/neural-networks-3/#sgd
     v = config['momentum'] * v - config['learning_rate'] * dw
+
+    # With Momentum update, the parameter vector will build up velocity
+    #   in any direction that has consistent gradient.
     next_w = w + v
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -102,7 +105,11 @@ def rmsprop(x, dx, config=None):
     # in the next_x variable. Don't forget to update cache value stored in    #
     # config['cache'].                                                        #
     ###########################################################################
-    pass
+    # http://cs231n.github.io/neural-networks-3/#ada
+    config['cache'] = config['decay_rate'] * config['cache'] + \
+                      (1 - config['decay_rate']) * dx ** 2
+    next_x = x - config['learning_rate'] * dx / \
+                      (np.sqrt(config['cache']) + config['epsilon'])
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
