@@ -146,7 +146,19 @@ def adam(x, dx, config=None):
     # the next_x variable. Don't forget to update the m, v, and t variables   #
     # stored in config.                                                       #
     ###########################################################################
-    pass
+    # http://cs231n.github.io/neural-networks-3/#adam
+    config['m'] = config['beta1'] * config['m'] + (1 - config['beta1']) * dx
+    config['v'] = config['beta2'] * config['v'] + (1 - config['beta2']) * (dx**2)
+    
+    # Including bias correction mechanism, to compensates for the fact that
+    #   in the first few time steps the vectors m,v are both initialized and
+    #   therefore biased at zero, before they fully "warm up".
+    mt = config['m'] / (1 - config['beta1'] ** config['t'])
+    vt = config['v'] / (1 - config['beta2'] ** config['t'])
+
+    next_x = x - config['learning_rate'] * mt \
+             / (np.sqrt(vt) + config['epsilon'])
+    
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
