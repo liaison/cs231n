@@ -195,11 +195,10 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         
         # normalize the input
         x -= sample_mean
-        x /= (np.sqrt(sample_var) + eps)
+        x /= np.sqrt(sample_var + eps)
         
         # scale and shift the normalized input
-        x = x * gamma + beta
-        out = x
+        out = x * gamma + beta
         
         # store the running mean and variance
         running_mean = momentum * running_mean + (1 - momentum) * sample_mean
@@ -221,7 +220,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         running_var = bn_param['running_var']
         
         x -= running_mean
-        x /= (np.sqrt(running_var) + eps)
+        x /= np.sqrt(running_var + eps)
         out = x * gamma + beta
         
         # TODO: cache
