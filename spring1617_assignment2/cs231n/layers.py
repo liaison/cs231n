@@ -191,21 +191,21 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # variables.                                                          #
         #######################################################################
         sample_mean = np.mean(x, axis=0)
-        sample_var = np.var(x)
+        # the "axis" parameter is critical !!!
+        sample_var = np.var(x, axis=0)
         
         # normalize the input
-        x -= sample_mean
-        x /= np.sqrt(sample_var + eps)
+        x_normalized = (x - sample_mean) / np.sqrt(sample_var + eps)
         
         # scale and shift the normalized input
-        out = x * gamma + beta
+        out = x_normalized * gamma + beta
         
         # store the running mean and variance
         running_mean = momentum * running_mean + (1 - momentum) * sample_mean
         running_var = momentum * running_var + (1 - momentum) * sample_var
 
-        # TODO: cache
-        
+        # prepare for the gradients calculation
+        cache = (x, gamma, beta, x_normalized, sample_mean, sample_var+eps)
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -216,14 +216,13 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # then scale and shift the normalized data using gamma and beta.      #
         # Store the result in the out variable.                               #
         #######################################################################
-        running_mean = bn_param['running_mean']
-        running_var = bn_param['running_var']
+    
+        x_normalized = (x - running_mean) / np.sqrt(running_var + eps)
         
-        x -= running_mean
-        x /= np.sqrt(running_var + eps)
-        out = x * gamma + beta
+        out = gamma * x_normalized + beta
         
-        # TODO: cache
+        # cache is NOT needed
+        #cache = (x, gamma, beta, x_normalized, running_mean, running_var+eps)
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
@@ -259,7 +258,23 @@ def batchnorm_backward(dout, cache):
     # TODO: Implement the backward pass for batch normalization. Store the    #
     # results in the dx, dgamma, and dbeta variables.                         #
     ###########################################################################
-    pass
+    (x, gamma, beta, x_normalized, mean, var) = cache
+    
+    # Following the derivative from the paper: https://arxiv.org/pdf/1502.03167.pdf
+    
+    d_normal_x = dout * gamma
+
+    d_var = np.sum(d_normal_x * (x - mean) * (-1.0/2) / (var ** (3.0/2)), axis=0)
+    
+    N = x.shape[0]
+    d_mean = np.sum(-d_normal_x / np.sqrt(var), axis=0) \
+            + 1.0/N * d_var * np.sum(-2*(x-mean), axis=0)
+    
+    dx = 1 / np.sqrt(var) * d_normal_x + d_var * 2.0 / N * (x-mean)  + 1.0/N * d_mean
+    
+    # the gradients of gamma and beta are easier to calculate
+    dgamma = (dout * x_normalized).sum(axis=0)
+    dbeta = np.sum(dout, axis=0) 
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -289,7 +304,25 @@ def batchnorm_backward_alt(dout, cache):
     # should be able to compute gradients with respect to the inputs in a     #
     # single statement; our implementation fits on a single 80-character line.#
     ###########################################################################
-    pass
+    
+    (x, gamma, beta, x_normalized, mean, var) = cache
+
+    # Following the derivative from the paper: https://arxiv.org/pdf/1502.03167.pdf
+    
+    d_normal_x = dout * gamma
+
+    d_var = np.sum(d_normal_x * (x - mean) * (-1.0/2) / (var ** (3.0/2)), axis=0)
+    
+    N = x.shape[0]
+    # drop the second term, comparing to the previous method.
+    d_mean = np.sum(-d_normal_x / np.sqrt(var), axis=0)
+    
+    dx = 1 / np.sqrt(var) * d_normal_x + d_var * 2.0 / N * (x-mean)  + 1.0/N * d_mean
+    
+    # the gradients of gamma and beta are easier to calculate
+    dgamma = (dout * x_normalized).sum(axis=0)
+    dbeta = np.sum(dout, axis=0) 
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
