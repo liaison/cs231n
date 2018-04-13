@@ -6,6 +6,7 @@ from cs231n.layers import *
 from cs231n.layer_utils import *
 
 
+
 class TwoLayerNet(object):
     """
     A two-layer fully-connected neural network with ReLU nonlinearity and
@@ -132,6 +133,40 @@ class TwoLayerNet(object):
         return loss, grads
 
 
+def affine_bn_relu_forward(x, w, b, gamma, beta, bn_param):
+    """
+    Convenience layer that perorms an affine transform followed by a
+      Batch Normalization and then the ReLU gate
+
+    Inputs:
+    - x: Input to the affine layer
+    - w, b: Weights for the affine layer
+
+    Returns a tuple of:
+    - out: Output from the ReLU
+    - cache: Object to give to the backward pass
+    """
+    fc_out, fc_cache = affine_forward(x, w, b)
+    bn_out, bn_cache = batchnorm_forward(fc_out, gamma, beta, bn_param)
+    out, relu_cache = relu_forward(bn_out)
+    
+    cache = (fc_cache, bn_cache, relu_cache)
+    return out, cache
+
+
+def affine_bn_relu_backward(dout, cache):
+    """
+    Backward pass for the affine-bn-relu convenience layer
+    """
+    fc_cache, bn_cache, relu_cache = cache
+
+    d_relu = relu_backward(dout, relu_cache)
+    d_bn, dgamma, dbeta = batchnorm_backward(d_relu, bn_cache)
+    dx, dw, db = affine_backward(d_bn, fc_cache)
+    
+    return dx, dw, db, dgamma, dbeta
+
+
 class FullyConnectedNet(object):
     """
     A fully-connected neural network with an arbitrary number of hidden layers,
@@ -203,8 +238,10 @@ class FullyConnectedNet(object):
                                  size = (dimension_chain[i], dimension_chain[i+1]))
             self.params['b' + str(i+1)] = np.zeros(dimension_chain[i+1])
 
-        # TODO:
-        # Batch normalization
+            # init the scale and shift parameters for Batch Normalization
+            if self.use_batchnorm and i != len(hidden_dims):
+                self.params['gamma' + str(i+1)] = np.ones(dimension_chain[i+1])
+                self.params['beta' + str(i+1)] = np.zeros(dimension_chain[i+1])
 
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -283,9 +320,20 @@ class FullyConnectedNet(object):
                 out, cache = affine_forward(layer_input,
                     self.params['W' + layer_index], self.params['b' + layer_index])
             else:
-                # the intermediate hidden layers
-                out, cache = affine_relu_forward(layer_input,
-                    self.params['W' + layer_index], self.params['b' + layer_index])
+                # the intermediate hidden layers, with batch normalization or not
+                if self.use_batchnorm:
+                    out, cache = affine_bn_relu_forward(
+                        layer_input,
+                        self.params['W' + layer_index],
+                        self.params['b' + layer_index],
+                        self.params['gamma' + layer_index],
+                        self.params['beta' + layer_index],
+                        self.bn_params[i])
+                else:
+                    out, cache = affine_relu_forward(
+                        layer_input,
+                        self.params['W' + layer_index],
+                        self.params['b' + layer_index])
         
             out_cache_dict['out' + layer_index] = out
             out_cache_dict['cache' + layer_index] = cache
@@ -339,11 +387,21 @@ class FullyConnectedNet(object):
                 # the backward of the last layer does not need the ReLU gate
                 dx, dw, db = affine_backward(d_out, out_cache_dict['cache' + layer_index])
             else:
-                dx, dw, db = affine_relu_backward(d_out, out_cache_dict['cache' + layer_index])
+                if self.use_batchnorm:
+                    dx, dw, db, dgamma, dbeta = affine_bn_relu_backward(
+                        d_out, out_cache_dict['cache' + layer_index])
+
+                    # save the additional parameters for batch normalization
+                    grads['gamma' + layer_index] = dgamma
+                    grads['beta' + layer_index] = dbeta
+                else:
+                    dx, dw, db = affine_relu_backward(
+                        d_out, out_cache_dict['cache' + layer_index])
 
             # the derivative output of the previous layer becomes the input of the next layer 
             d_out = dx
             
+            # save the gradients for the affine layer
             grads['W' + layer_index] = dw
             grads['b' + layer_index] = db
         ############################################################################
