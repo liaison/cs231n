@@ -334,7 +334,13 @@ class FullyConnectedNet(object):
                         layer_input,
                         self.params['W' + layer_index],
                         self.params['b' + layer_index])
-        
+
+                # add the dropout for the hidden layers, if there is any
+                if self.use_dropout:
+                    out, dropout_cache = dropout_forward(out, self.dropout_param)
+                    # append the dropout cache
+                    cache = (cache, dropout_cache)
+
             out_cache_dict['out' + layer_index] = out
             out_cache_dict['cache' + layer_index] = cache
             
@@ -343,8 +349,6 @@ class FullyConnectedNet(object):
 
         # Note: NO softmax on the final output
         scores = out
-
-        # TODO: dropout
 
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -387,16 +391,27 @@ class FullyConnectedNet(object):
                 # the backward of the last layer does not need the ReLU gate
                 dx, dw, db = affine_backward(d_out, out_cache_dict['cache' + layer_index])
             else:
+
+                cache = out_cache_dict['cache' + layer_index]
+
+                # check the dropout first, since it is right after ReLU.
+                if self.use_dropout:
+                    # decompose the cache
+                    rest_cache, dropout_cache = cache
+                    dx = dropout_backward(d_out, dropout_cache)
+
+                    # pop out the dropout cache, and propapgate the derivative
+                    cache = rest_cache
+                    d_out = dx
+
                 if self.use_batchnorm:
-                    dx, dw, db, dgamma, dbeta = affine_bn_relu_backward(
-                        d_out, out_cache_dict['cache' + layer_index])
+                    dx, dw, db, dgamma, dbeta = affine_bn_relu_backward(d_out, cache)
 
                     # save the additional parameters for batch normalization
                     grads['gamma' + layer_index] = dgamma
                     grads['beta' + layer_index] = dbeta
                 else:
-                    dx, dw, db = affine_relu_backward(
-                        d_out, out_cache_dict['cache' + layer_index])
+                    dx, dw, db = affine_relu_backward(d_out, cache)
 
             # the derivative output of the previous layer becomes the input of the next layer 
             d_out = dx
