@@ -438,7 +438,43 @@ def conv_forward_naive(x, w, b, conv_param):
     # TODO: Implement the convolutional forward pass.                         #
     # Hint: you can use the function np.pad for padding.                      #
     ###########################################################################
-    pass
+    # reference: http://cs231n.github.io/convolutional-networks/
+    stride = conv_param['stride']
+    pad = conv_param['pad']
+    
+    (N, C, H, W) = x.shape
+    # pad the input if needed
+    if pad > 0:
+        # create the expected padded ndarray with zeros
+        x_padded = np.zeros((N, C, H + pad*2, W + pad*2))
+        # pad each sample
+        for n in range(N):
+            # iterate through each color channel, i.e. depth
+            for c in range(C):
+                # overwrite the final padded rows.
+                for h in range(H):
+                    x_padded[n, c, h+pad, :] = np.pad(x[n, c, h, :],
+                        (pad, pad), 'constant', constant_values=(0, 0))
+    
+    (F, C, HH, WW) = w.shape
+    
+    # calculate the dimensions of convolution output
+    OH = int(1 + (H + 2 * pad - HH) / stride)
+    OW = int(1 + (W + 2 * pad - WW) / stride)
+    out = np.zeros((N, F, OH, OW))
+    
+    # convolve over element, filter/layer, height and width
+    for n in range(N):
+        for f in range(F):
+            for ih in range(OH):
+                for iw in range(OW):
+                    # slice the region in 3D to convolve with weights
+                    rh = ih * stride
+                    rw = iw * stride
+                    region = x_padded[n, :, rh:(rh+HH), rw:(rw+WW)]
+                    
+                    # convolve the region with the weight
+                    out[n, f, ih, iw] = np.sum(region * w[f]) + b[f]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
