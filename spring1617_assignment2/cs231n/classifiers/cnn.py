@@ -48,7 +48,41 @@ class ThreeLayerConvNet(object):
         # hidden affine layer, and keys 'W3' and 'b3' for the weights and biases   #
         # of the output affine layer.                                              #
         ############################################################################
-        pass
+        
+        # input_dim: Tuple (C, H, W) giving size of input data
+        (C, H, W) = input_dim
+        
+        # 1). weights for the Convolution layer
+        #  w: Filter weights of shape (F, C, HH, WW)
+        #  b: Biases, of shape (F,)
+        
+        #  F:  num_filters,  HH == WW == filter_size
+        self.params['W1'] = np.random.normal(scale = weight_scale,
+            size = (num_filters, C, filter_size, filter_size))
+        self.params['b1'] = np.zeros(num_filters)
+        
+        # 2). weights for the hidden affine layer
+        # stride = 1,  padding = (F-1)/2 to ensure that
+        #   the input and output of CONV layer have the same last two dimensions
+        # The number of neurons in the CONV layer would be:
+        #    (F, H, W) = F * H * W
+        # which would then further reduced into a quarter, due to MAX pooling layer
+        #    (F, H/2, W/2) = F * H * W / 4.
+        # And then these neurons would serve as the input for the next fully-connected layer.
+        # Therefore, the weights for this fully-connected layer should be:
+        #   (num_input_neurons, num_output_neurons) = (F*H*W/4, hidden_dim)
+        self.params['W2'] = np.random.normal(scale = weight_scale,
+            size = (int(num_filters * H * W / 4), hidden_dim))
+        self.params['b2'] = np.zeros(hidden_dim)
+        
+        # 3). weight for the output affine layer with softmax.
+        #  The input of this last layer comes from the output of the previous hidden layer.
+        #  And the number of output neurons is determined by the number of classes.
+        # Therefore, the weights of this layer should be (hidden_dim, num_classes)
+        self.params['W3'] = np.random.normal(scale = weight_scale,
+            size = (hidden_dim, num_classes))
+        self.params['b3'] = np.zeros(num_classes)
+        
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -62,6 +96,22 @@ class ThreeLayerConvNet(object):
         Evaluate loss and gradient for the three-layer convolutional network.
 
         Input / output: Same API as TwoLayerNet in fc_net.py.
+        
+        Inputs:
+        - X: Array of input data of shape (N, d_1, ..., d_k)
+        - y: Array of labels, of shape (N,). y[i] gives the label for X[i].
+
+        Returns:
+        If y is None, then run a test-time forward pass of the model and return:
+        - scores: Array of shape (N, C) giving classification scores, where
+          scores[i, c] is the classification score for X[i] and class c.
+
+        If y is not None, then run a training-time forward and backward pass and
+        return a tuple of:
+        - loss: Scalar value giving the loss
+        - grads: Dictionary with the same keys as self.params, mapping parameter
+          names to gradients of the loss with respect to those parameters.
+
         """
         W1, b1 = self.params['W1'], self.params['b1']
         W2, b2 = self.params['W2'], self.params['b2']
