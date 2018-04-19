@@ -631,7 +631,35 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the max pooling backward pass                           #
     ###########################################################################
-    pass
+    # unzip the cache
+    (x, pool_param) = cache
+
+    (N, C, H, W) = x.shape
+    ph = pool_param['pool_height']
+    pw = pool_param['pool_width']
+    stride = pool_param['stride']
+
+    # out of shape (N, C, OH, OW) where OH and OW are given by
+    (N, C, OH, OW) = dout.shape
+    dx = np.zeros_like(x)
+
+    # iterate over element, channel, height and width
+    # The derivative of Max operation would be passed on to the max input element
+    for n in range(N):
+        for c in range(C):
+            for ih in range(OH):
+                for iw in range(OW):
+                    # slice over the region in 2D to max over elements
+                    rh = ih * stride
+                    rw = iw * stride
+                    region = x[n, c, rh:(rh+ph), rw:(rw+pw)]
+
+                    # get the index of the maximum input element
+                    max_index = np.unravel_index(
+                        np.argmax(region, axis=None), region.shape)
+
+                    # propagate the gradient to the max input element
+                    dx[n, c, rh+max_index[0], rw+max_index[1]] += dout[n, c, ih, iw]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
