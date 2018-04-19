@@ -526,9 +526,9 @@ def conv_backward_naive(dout, cache):
     
     (N, C, H,  W)  = x.shape
     (F, C, HH, WW) = w.shape
-    # dout of shape (N, F, H', W') where H' and W' are given by
-    # H' = 1 + (H + 2 * pad - HH) / stride
-    # W' = 1 + (W + 2 * pad - WW) / stride
+    # dout of shape (N, F, OH, OW) where OH and OW are given by
+    # OH = 1 + (H + 2 * pad - HH) / stride
+    # OW = 1 + (W + 2 * pad - WW) / stride
     (N, F, OH, OW) = dout.shape
     
     stride = conv_param['stride']
@@ -587,7 +587,28 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # TODO: Implement the max pooling forward pass                            #
     ###########################################################################
-    pass
+    (N, C, H, W) = x.shape
+    ph = pool_param['pool_height']
+    pw = pool_param['pool_width']
+    stride = pool_param['stride']
+
+    # out of shape (N, C, OH, OW) where OH and OW are given by
+    OH = int(1 + (H - ph) / stride)
+    OW = int(1 + (W - pw) / stride)
+    out = np.zeros((N, C, OH, OW))
+
+    # max over element, channel, height and width
+    for n in range(N):
+        for c in range(C):
+            for ih in range(OH):
+                for iw in range(OW):
+                    # slice over the region in 2D to max over elements
+                    rh = ih * stride
+                    rw = iw * stride
+                    region = x[n, c, rh:(rh+ph), rw:(rw+pw)]
+
+                    # max over the region
+                    out[n, c, ih, iw] = np.max(region)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
