@@ -410,6 +410,30 @@ def dropout_backward(dout, cache):
     return dx
 
 
+def padding(x, pad):
+    """
+        pad the input on the last two dimensions.
+        e.g.
+              x of shape (N, C, H, W) 
+          return: (N, C, H+pad*2, W+pad*2)
+    """
+    (N, C, H, W) = x.shape
+
+    # create the expected padded ndarray with zeros
+    #   and at the same pad the columns
+    x_padded = np.zeros((N, C, H + pad*2, W + pad*2))
+    # pad each sample
+    for n in range(N):
+        # iterate through each color channel, i.e. depth
+        for c in range(C):
+            # overwrite the padded rows with original values.
+            for h in range(H):
+                x_padded[n, c, h+pad, :] = np.pad(x[n, c, h, :],
+                    (pad, pad), 'constant', constant_values=(0, 0))
+
+    return x_padded
+
+
 def conv_forward_naive(x, w, b, conv_param):
     """
     A naive implementation of the forward pass for a convolutional layer.
@@ -446,15 +470,7 @@ def conv_forward_naive(x, w, b, conv_param):
     # pad the input if needed
     if pad > 0:
         # create the expected padded ndarray with zeros
-        x_padded = np.zeros((N, C, H + pad*2, W + pad*2))
-        # pad each sample
-        for n in range(N):
-            # iterate through each color channel, i.e. depth
-            for c in range(C):
-                # overwrite the final padded rows.
-                for h in range(H):
-                    x_padded[n, c, h+pad, :] = np.pad(x[n, c, h, :],
-                        (pad, pad), 'constant', constant_values=(0, 0))
+        x_padded = padding(x, pad)
     
     (F, C, HH, WW) = w.shape
     
@@ -488,6 +504,9 @@ def conv_backward_naive(dout, cache):
 
     Inputs:
     - dout: Upstream derivatives.
+        of shape (N, F, H', W') where H' and W' are given by
+            H' = 1 + (H + 2 * pad - HH) / stride
+            W' = 1 + (W + 2 * pad - WW) / stride
     - cache: A tuple of (x, w, b, conv_param) as in conv_forward_naive
 
     Returns a tuple of:
@@ -499,7 +518,50 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
-    pass
+    # unzip the cache
+    # x: Input data of shape (N, C, H, W)
+    # w: Filter weights of shape (F, C, HH, WW)
+    # b: Biases, of shape (F,)
+    (x, w, b, conv_param) = cache
+    
+    (N, C, H,  W)  = x.shape
+    (F, C, HH, WW) = w.shape
+    # dout of shape (N, F, H', W') where H' and W' are given by
+    # H' = 1 + (H + 2 * pad - HH) / stride
+    # W' = 1 + (W + 2 * pad - WW) / stride
+    (N, F, OH, OW) = dout.shape
+    
+    stride = conv_param['stride']
+    pad = conv_param['pad']
+    
+    x_padded = padding(x, pad)
+
+    # gradients for the padded input
+    dx_padded = np.zeros_like(x_padded)
+    dw = np.zeros_like(w)
+    
+    # convolve over element, filter/layer, height and width
+    for n in range(N):
+        for f in range(F):
+            for ih in range(OH):
+                for iw in range(OW):
+                    # slice the region in 3D to convolve with weights
+                    rh = ih * stride
+                    rw = iw * stride
+                    region = x_padded[n, :, rh:(rh+HH), rw:(rw+WW)]
+                    
+                    d_error = dout[n, f, ih, iw]
+                    
+                    # derivative operations over the convolution.
+                    #   cumulate the gradients
+                    dw[f] += d_error * region
+                    dx_padded[n, :, rh:(rh+HH), rw:(rw+WW)] += d_error * w[f]
+    
+    # retrieve the gradients from the padded input
+    dx = dx_padded[:, :, pad:(H+pad), pad:(W+pad)]
+    
+    # Sum over all dimensions, except the filter dimension: F
+    db = dout.sum(axis=3).sum(axis=2).sum(axis=0)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
