@@ -6,6 +6,41 @@ from cs231n.fast_layers import *
 from cs231n.layer_utils import *
 
 
+def conv_relu_pool_forward_naive(x, w, b, conv_param, pool_param):
+    """
+    Convenience layer that performs a convolution, a ReLU, and a pool.
+
+    Note: use the our own naive version of CONV implementation.
+
+    Inputs:
+    - x: Input to the convolutional layer
+    - w, b, conv_param: Weights and parameters for the convolutional layer
+    - pool_param: Parameters for the pooling layer
+
+    Returns a tuple of:
+    - out: Output from the pooling layer
+    - cache: Object to give to the backward pass
+    """
+    a, conv_cache = conv_forward_naive(x, w, b, conv_param)
+    s, relu_cache = relu_forward(a)
+    out, pool_cache = max_pool_forward_naive(s, pool_param)
+    cache = (conv_cache, relu_cache, pool_cache)
+    return out, cache
+
+
+def conv_relu_pool_backward_naive(dout, cache):
+    """
+    Backward pass for the conv-relu-pool convenience layer
+
+    Note: use the our own naive version of CONV implementation.
+    """
+    conv_cache, relu_cache, pool_cache = cache
+    ds = max_pool_backward_naive(dout, pool_cache)
+    da = relu_backward(ds, relu_cache)
+    dx, dw, db = conv_backward_naive(da, conv_cache)
+    return dx, dw, db
+
+
 class ThreeLayerConvNet(object):
     """
     A three-layer convolutional network with the following architecture:
@@ -95,7 +130,13 @@ class ThreeLayerConvNet(object):
         """
         Evaluate loss and gradient for the three-layer convolutional network.
 
-        Input / output: Same API as TwoLayerNet in fc_net.py.
+        The architecture of the network as follows:
+
+            conv - relu - 2x2 max pool - affine - relu - affine - softmax
+
+        The network operates on minibatches of data that have shape (N, C, H, W)
+        consisting of N images, each with height H and width W and with C input
+        channels.
         
         Inputs:
         - X: Array of input data of shape (N, d_1, ..., d_k)
@@ -130,7 +171,20 @@ class ThreeLayerConvNet(object):
         # computing the class scores for X and storing them in the scores          #
         # variable.                                                                #
         ############################################################################
-        pass
+        #     layer_1   ------------------->  layer_2 ---------> layer_3
+        #  [conv - relu - 2x2 max pool] - [affine - relu] - [affine - softmax]
+
+        # Note: one can use the provided fast version of functions in layer_utils.py
+        
+        out_1, cache_1 = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
+        #out_1, cache_1 = conv_relu_pool_forward_naive(X, W1, b1, conv_param, pool_param)
+        
+        out_2, cache_2 = affine_relu_forward(out_1, W2, b2)
+        
+        # Note: the softmax is used for the loss, not for the scores
+        out_3, cache_3 = affine_forward(out_2, W3, b3)
+        
+        scores = out_3
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -145,7 +199,26 @@ class ThreeLayerConvNet(object):
         # data loss using softmax, and make sure that grads[k] holds the gradients #
         # for self.params[k]. Don't forget to add L2 regularization!               #
         ############################################################################
-        pass
+        
+        loss, dout_3 = softmax_loss(scores, y)
+        # add L2 regularization
+        if (self.reg):
+            reg_W1 = self.reg * np.sum(np.power(self.params['W1'], 2))
+            reg_W2 = self.reg * np.sum(np.power(self.params['W2'], 2))
+            reg_W3 = self.reg * np.sum(np.power(self.params['W3'], 2))
+            loss += 0.5 * (reg_W1 + reg_W2 + reg_W3)
+
+        dout_2, dw3, db3 = affine_backward(dout_3, cache_3)
+        dout_1, dw2, db2 = affine_relu_backward(dout_2, cache_2)
+        dx, dw1, db1 = conv_relu_pool_backward(dout_1, cache_1)
+
+        grads['W1'] = dw1
+        grads['b1'] = db1
+        grads['W2'] = dw2
+        grads['b2'] = db2
+        grads['W3'] = dw3
+        grads['b3'] = db3
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
