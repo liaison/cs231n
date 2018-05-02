@@ -112,7 +112,20 @@ def rnn_forward(x, h0, Wx, Wh, b):
     # input data. You should use the rnn_step_forward function that you defined  #
     # above. You can use a for loop to help compute the forward pass.            #
     ##############################################################################
-    pass
+    (N, T, D) = x.shape
+    (N, H) = h0.shape
+    # iterate over the T dimension
+    h = np.zeros((N, T, H))
+    cache = {} # dictionary indexed by the T dimension
+    for t in range(T):
+        if t == 0:
+            # the first step
+            h[:, t, :], cache[t] = rnn_step_forward(
+                x[:, t, :], h0, Wx, Wh, b)
+        else:
+            # use the previous state information for next state
+            h[:, t, :], cache[t] = rnn_step_forward(
+                x[:, t, :], h[:, t-1, :], Wx, Wh, b)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
