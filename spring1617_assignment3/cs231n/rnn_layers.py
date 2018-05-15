@@ -152,7 +152,28 @@ def rnn_backward(dh, cache):
     # sequence of data. You should use the rnn_step_backward function that you   #
     # defined above. You can use a for loop to help compute the backward pass.   #
     ##############################################################################
-    pass
+    (_, _, x, Wx, Wh) = cache[0]
+    (N, D) = x.shape
+    (N, T, H) = dh.shape
+    dx = np.zeros((N, T, D))
+    dh0 = np.zeros((N, H))
+    dWx = np.zeros((D, H))
+    dWh = np.zeros((H, H))
+    db = np.zeros(H)
+    dprev_h = np.zeros((N, H))
+    for t in reversed(range(T)):
+        # Note: one should add the gradient of previous hidden state
+        #        back to the original gradient vector.
+        # The gradients for those weights that are applied at each time step,
+        #    e.g. Wx, Wh, b, would accumulate.
+        (dx[:, t, :], dprev_h, dWx_t, dWh_t, db_t) = \
+            rnn_step_backward(dh[:, t, :] + dprev_h, cache[t])
+        
+        dWx += dWx_t
+        dWh += dWh_t
+        db += db_t
+    
+    dh0 = dprev_h
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
