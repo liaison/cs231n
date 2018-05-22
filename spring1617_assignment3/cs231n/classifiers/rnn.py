@@ -137,10 +137,12 @@ class CaptioningRNN(object):
         # defined above to store loss and gradients; grads[k] should give the      #
         # gradients for self.params[k].                                            #
         ############################################################################
-        # (1), feature of shape (N, D), W_proj of shape (D, H)
+        # (1) project the images into hidden states for RNN
+        #   feature of shape (N, D), W_proj of shape (D, H)
         out_proj, cache_proj = affine_forward(features, W_proj, b_proj)
         
-        # (2) out_embed of shape (N, T, W)
+        # (2) construct the words input vectors for the RNN
+        #   out_embed of shape (N, T, W)
         out_embed, cache_embed = word_embedding_forward(captions_in, W_embed)
         
         # (3)
@@ -151,7 +153,27 @@ class CaptioningRNN(object):
         out_temp, cache_temp = temporal_affine_forward(h, W_vocab, b_vocab)
         
         # (5)
-        loss, dx = temporal_softmax_loss(out_temp, captions_out, mask, verbose=False)
+        loss, dout = temporal_softmax_loss(out_temp, captions_out, mask, verbose=False)
+        
+        # backward pass to calculate the gradients
+        # (4-b)
+        dh, dW_vocab, db_vocab = temporal_affine_backward(dout, cache_temp)
+        # (3-b)
+        if (self.cell_type == 'rnn'):
+            dout_embed, dout_proj, dWx, dWh, db = rnn_backward(dh, cache)
+        # (2-b)
+        dW_embed = word_embedding_backward(dout_embed, cache_embed)
+        # (1-b)
+        dfeatures, dW_proj, db_proj = affine_backward(dout_proj, cache_proj)
+        
+        grads['W_embed'] = dW_embed
+        grads['W_proj'] = dW_proj
+        grads['b_proj'] = db_proj
+        grads['Wx'] = dWx
+        grads['Wh'] = dWh
+        grads['b'] = db
+        grads['W_vocab'] = dW_vocab
+        grads['b_vocab'] = db_vocab
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
