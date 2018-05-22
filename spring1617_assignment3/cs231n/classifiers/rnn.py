@@ -17,7 +17,7 @@ class CaptioningRNN(object):
 
     Note that we don't use any regularization for the CaptioningRNN.
     """
-
+    
     def __init__(self, word_to_idx, input_dim=512, wordvec_dim=128,
                  hidden_dim=128, cell_type='rnn', dtype=np.float32):
         """
@@ -137,7 +137,21 @@ class CaptioningRNN(object):
         # defined above to store loss and gradients; grads[k] should give the      #
         # gradients for self.params[k].                                            #
         ############################################################################
-        pass
+        # (1), feature of shape (N, D), W_proj of shape (D, H)
+        out_proj, cache_proj = affine_forward(features, W_proj, b_proj)
+        
+        # (2) out_embed of shape (N, T, W)
+        out_embed, cache_embed = word_embedding_forward(captions_in, W_embed)
+        
+        # (3)
+        if (self.cell_type == 'rnn'):
+            h, cache = rnn_forward(out_embed, out_proj, Wx, Wh, b)
+        
+        # (4)
+        out_temp, cache_temp = temporal_affine_forward(h, W_vocab, b_vocab)
+        
+        # (5)
+        loss, dx = temporal_softmax_loss(out_temp, captions_out, mask, verbose=False)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
