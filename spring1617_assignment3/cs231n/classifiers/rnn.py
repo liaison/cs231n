@@ -137,6 +137,12 @@ class CaptioningRNN(object):
         # defined above to store loss and gradients; grads[k] should give the      #
         # gradients for self.params[k].                                            #
         ############################################################################
+        #
+        #   image    --> affine -->|
+        #                          |  RNN / LSTM -->  temporal_affine
+        #   captions --> embed  -->|
+        #
+        #
         # (1) project the images into hidden states for RNN
         #   feature of shape (N, D), W_proj of shape (D, H)
         out_proj, cache_proj = affine_forward(features, W_proj, b_proj)
@@ -235,7 +241,38 @@ class CaptioningRNN(object):
         # functions; you'll need to call rnn_step_forward or lstm_step_forward in #
         # a loop.                                                                 #
         ###########################################################################
-        pass
+        # initialize the hidden state
+        out_proj, cache_proj = affine_forward(features, W_proj, b_proj)
+
+        prev_word = np.zeros((N, 1)).astype(int)
+        prev_word[:, 0] = self._start  # initial word for each sample
+        
+        prev_h = out_proj        # initial hidden state for each sample
+        
+        for i in range(max_length):
+            # (1). encode the previous word
+            out_embed, cache_embed = word_embedding_forward(prev_word, W_embed)
+            out_embed = out_embed.reshape(N, -1)
+            
+            # (2). apply RNN / LSTM to generate the next state
+            if (self.cell_type == 'rnn'):
+                next_h, cache = rnn_step_forward(out_embed, prev_h, Wx, Wh, b)
+            
+            # (3). generate score for each vocabulary
+            next_h = next_h.reshape(N, 1, -1)  # extend the time dimension of previous state
+            out_temp, cache_temp = temporal_affine_forward(next_h, W_vocab, b_vocab)
+            
+            # (4). pick the word with the highest score
+            chosen_word_idx = np.argmax(out_temp, axis=2).reshape(N, 1)
+            
+            next_word = chosen_word_idx
+        
+            # store the caption output
+            captions[:, i] = next_word.reshape(N)
+            
+            # update the states
+            prev_h = next_h.reshape(N,-1)
+            prev_word = next_word
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
