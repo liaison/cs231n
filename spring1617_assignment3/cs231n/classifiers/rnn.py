@@ -154,6 +154,8 @@ class CaptioningRNN(object):
         # (3)
         if (self.cell_type == 'rnn'):
             h, cache = rnn_forward(out_embed, out_proj, Wx, Wh, b)
+        elif (self.cell_type == 'lstm'):
+            h, cache = lstm_forward(out_embed, out_proj, Wx, Wh, b)
         
         # (4)
         out_temp, cache_temp = temporal_affine_forward(h, W_vocab, b_vocab)
@@ -167,6 +169,9 @@ class CaptioningRNN(object):
         # (3-b)
         if (self.cell_type == 'rnn'):
             dout_embed, dout_proj, dWx, dWh, db = rnn_backward(dh, cache)
+        elif (self.cell_type == 'lstm'):
+            dout_embed, dout_proj, dWx, dWh, db = lstm_backward(dh, cache)
+            
         # (2-b)
         dW_embed = word_embedding_backward(dout_embed, cache_embed)
         # (1-b)
@@ -249,6 +254,10 @@ class CaptioningRNN(object):
         
         prev_h = out_proj        # initial hidden state for each sample
         
+        if (self.cell_type == 'lstm'):
+            # init the cell state for LSTM
+            next_c = np.zeros_like(prev_h)
+        
         for i in range(max_length):
             # (1). encode the previous word
             out_embed, cache_embed = word_embedding_forward(prev_word, W_embed)
@@ -257,6 +266,8 @@ class CaptioningRNN(object):
             # (2). apply RNN / LSTM to generate the next state
             if (self.cell_type == 'rnn'):
                 next_h, cache = rnn_step_forward(out_embed, prev_h, Wx, Wh, b)
+            elif (self.cell_type == 'lstm'):
+                next_h, next_c, cache = lstm_step_forward(out_embed, prev_h, next_c, Wx, Wh, b)
             
             # (3). generate score for each vocabulary
             next_h = next_h.reshape(N, 1, -1)  # extend the time dimension of previous state
