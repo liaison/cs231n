@@ -304,6 +304,9 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
     
     next_c = f * prev_c + i * g
     next_h = o * np.tanh(next_c)
+    
+    gates = (i, f, o, g)
+    cache = (x, prev_h, prev_c, Wx, Wh, b, gates, next_c)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -329,13 +332,60 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
     - db: Gradient of biases, of shape (4H,)
     """
     dx, dh, dc, dWx, dWh, db = None, None, None, None, None, None
+    dprev_h, dprev_c = None, None
     #############################################################################
     # TODO: Implement the backward pass for a single timestep of an LSTM.       #
     #                                                                           #
     # HINT: For sigmoid and tanh you can compute local derivatives in terms of  #
     # the output value from the nonlinearity.                                   #
     #############################################################################
-    pass
+    
+    # reference about the derivative of sigmoid and tangent
+    # https://theclevermachine.wordpress.com/tag/tanh-function/
+    
+    # calculate the derivatives with the chain rules, by first calculating the
+    #   derivative for the activation vector (i, f, o, g)
+    
+    (x, prev_h, prev_c, Wx, Wh, b, gates, next_c) = cache
+    (i, f, o, g) = gates
+    
+    # prepare the intermediate values which should be useful later
+    tanh_nextc = np.tanh(next_c)
+    d_tanh_nextc = 1 - np.power(tanh_nextc, 2)
+    
+    # for the final two activation functions:  next_c = ... and next_h = ...
+    #  calculate the derivatives accumulated by the two bottom derivatives 'dnext_c' and 'dnext_h'
+    dprev_c = dnext_c * f                           # propagated from dnext_c
+    dprev_c += dnext_h * (o * (d_tanh_nextc * f))   # propagated from dnext_h
+    
+    d_f = dnext_c * prev_c
+    d_f += dnext_h * (o * (d_tanh_nextc * prev_c))
+    
+    d_i = dnext_c * g
+    d_i += dnext_h * (o * (d_tanh_nextc * g))
+    
+    d_g = dnext_c * i
+    d_g += dnext_h * (o * (d_tanh_nextc * i))
+    # Note: there is no propagation from dnext_c, since 'o' was not involved.
+    d_o = dnext_h * tanh_nextc
+    
+    # calculate the derivative for the gate functions, e.g. i = sigmoid(i)
+    d_i = d_i * (i * (1-i))
+    d_f = d_f * (f * (1-f))
+    d_o = d_o * (o * (1-o))
+    d_g = d_g * (1 - np.power(g, 2))
+    
+    # concatenate the gates into the activation vector
+    # difog of shape (N, 4H)
+    difog = np.hstack((d_i, d_f, d_o, d_g))
+    
+    # Now do the backpropagation for the activation function
+    dWx = np.dot(x.T, difog)
+    dWh = np.dot(prev_h.T, difog)
+    dx = np.dot(difog, Wx.T)
+    dprev_h = np.dot(difog, Wh.T)
+    
+    db = difog.sum(axis=0)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
